@@ -14,7 +14,7 @@ internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService
         Directory.CreateDirectory(options.OutputFolderPath);
 
         // Generate static pages.
-        var crawler = new ZtaticCrawler(appUrl, options);
+        var crawler = new ZtaticCrawler(appUrl, options, logger);
         await crawler.StartCrawlingAsync();
         
         // Copy assets to output.

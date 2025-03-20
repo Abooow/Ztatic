@@ -1,0 +1,22 @@
+@page "/blogs/{Slug}"
+
+@{
+    var blog = BlogsListPage.Blogs.FirstOrDefault(x => x.Slug == Slug);
+}
+
+@if (blog == default)
+{
+    <h1>Blog not found</h1>
+}
+else
+{
+    <h1>@blog.Name</h1>
+    
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    <p><small>generated @DateTime.Now</small></p>
+}
+
+@code {
+    [Parameter]
+    public required string Slug { get; set; }
+}

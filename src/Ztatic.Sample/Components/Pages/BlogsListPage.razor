@@ -1,0 +1,17 @@
+@page "/blogs"
+
+<h1>BlogsPage</h1>
+
+@foreach (var blog in Blogs)
+{
+    <p><a href="/blogs/@blog.Slug">@blog.Name</a></p>
+}
+
+@code {
+    public static (string Slug, string Name)[] Blogs { get; } =
+    [
+        ("test", "Test"),
+        ("first-blog", "First Blog"),
+        ("blazor-ztatic", "Blazor Ztatic")
+    ];
+}

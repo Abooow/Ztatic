@@ -8,6 +8,8 @@ builder.Services.AddRazorComponents();
 
 builder.Services.AddZtaticService(opt =>
 {
+    opt.ExplicitUrlsToFetch.Add("/explicit-fetch");
+    opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
 });
 
 var app = builder.Build();
