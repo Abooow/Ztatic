@@ -1,9 +1,14 @@
+using Ztatic;
 using Ztatic.Sample.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents();
+
+builder.Services.AddZtaticService(opt =>
+{
+});
 
 var app = builder.Build();
 
@@ -21,5 +26,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>();
+
+app.UseZtaticGenerator(!app.Environment.IsDevelopment());
 
 app.Run();
