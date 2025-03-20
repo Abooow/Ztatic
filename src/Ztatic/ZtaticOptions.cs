@@ -13,6 +13,8 @@ public sealed class ZtaticOptions
     public List<ContentToCopy> ContentToCopyToOutput { get; } = [];
 
     public List<string> IgnoredPathsOnContentCopy { get; } = [];
+
+    public bool SuppressFileGeneration { get; set; }
 }
 
 public sealed record ContentToCopy(string SourcePath, string TargetPath);

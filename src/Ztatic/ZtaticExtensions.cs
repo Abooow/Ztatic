@@ -21,12 +21,18 @@ public static class ZtaticExtensions
 
     public static void UseZtaticGenerator(this WebApplication app, bool shutdownApp = false)
     {
+        var logger = app.Services.GetRequiredService<ILogger<ZtaticService>>();
         var ztaticService = app.Services.GetRequiredService<ZtaticService>();
+
+        if (ztaticService.Options.SuppressFileGeneration)
+        {
+            logger.LogInformation("Ztatic is disabled.");
+            return;
+        }
+        
         AddDefaultStaticWebAssetsToOutput(app.Environment.WebRootFileProvider, string.Empty, ztaticService.Options);
         
         var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-        var logger = app.Services.GetRequiredService<ILogger<ZtaticService>>();
-        
         lifetime.ApplicationStarted.Register(async void () =>
             {
                 try
