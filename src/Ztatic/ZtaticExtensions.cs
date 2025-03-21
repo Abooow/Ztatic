@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -29,45 +28,41 @@ public static class ZtaticExtensions
             logger.LogInformation("Ztatic is disabled.");
             return;
         }
-        
-        AddDefaultStaticWebAssetsToOutput(app.Environment.WebRootFileProvider, string.Empty, ztaticService.Options);
+
+        var assets = StaticWebAssetsFinder.FindDefaultStaticAssets(app.Environment.WebRootFileProvider);
+        ztaticService.Options.ContentToCopyToOutput.AddRange(assets);
         
         var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         lifetime.ApplicationStarted.Register(async void () =>
             {
+                // Clear and create output folder.
+                if (Directory.Exists(ztaticService.Options.OutputFolderPath))
+                    Directory.Delete(ztaticService.Options.OutputFolderPath, true);
+                Directory.CreateDirectory(ztaticService.Options.OutputFolderPath);
+                
+                // Generate pages.
                 try
                 {
                     await ztaticService.GenerateStaticPagesAsync(app.Urls.First()).ConfigureAwait(false);
-                    
-                    if(shutdownApp)
-                        lifetime.StopApplication();
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "An error occurred while generating static pages: {ErrorMessage}", ex.Message);
                 }
+
+                // Copy assets.
+                try
+                {
+                    ztaticService.CopyAssetsToOutput();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "An error occurred while copying assets to output: {ErrorMessage}", ex.Message);
+                }
+                
+                if(shutdownApp)
+                    lifetime.StopApplication();
             }
         );
-    }
-    
-    private static void AddDefaultStaticWebAssetsToOutput(IFileProvider fileProvider, string subPath, ZtaticOptions ztaticOptions)
-    {
-        var contents = fileProvider.GetDirectoryContents(subPath);
-
-        foreach(var item in contents)
-        {
-            var fullPath = $"{subPath}{item.Name}";
-            if(item.IsDirectory)
-            {
-                AddDefaultStaticWebAssetsToOutput(fileProvider, $"{fullPath}/", ztaticOptions);
-            }
-            else
-            {
-                if(item.PhysicalPath is not null)
-                {
-                    ztaticOptions.ContentToCopyToOutput.Add(new ContentToCopy(item.PhysicalPath, fullPath));
-                }
-            }
-        }
     }
 }

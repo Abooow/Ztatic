@@ -8,21 +8,21 @@ internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService
 
     public async Task GenerateStaticPagesAsync(string appUrl)
     {
-        // Clear output folder.
-        if (Directory.Exists(options.OutputFolderPath))
-            Directory.Delete(options.OutputFolderPath, true);
-        Directory.CreateDirectory(options.OutputFolderPath);
-
         // Generate static pages.
         var crawler = new ZtaticCrawler(appUrl, options, logger);
         await crawler.StartCrawlingAsync();
-        
-        // Copy assets to output.
+    }
+
+    public void CopyAssetsToOutput()
+    {
+        var uniqueItemsToCopy = options.ContentToCopyToOutput.DistinctBy(x => (x.SourcePath, x.TargetPath));
         var ignoredPathsWithOutputFolder = options.IgnoredPathsOnContentCopy.Select(x => Path.Combine(options.OutputFolderPath, x)).ToList();
-        foreach(var pathToCopy in options.ContentToCopyToOutput)
+        
+        foreach(var itemToCopy in uniqueItemsToCopy)
         {
-            logger.LogInformation("Copying {sourcePath} to {targetPath}", pathToCopy.SourcePath, Path.Combine(options.OutputFolderPath, pathToCopy.TargetPath));
-            CopyContent(pathToCopy.SourcePath, Path.Combine(options.OutputFolderPath, pathToCopy.TargetPath), ignoredPathsWithOutputFolder);
+            var targetPath = Path.Combine(options.OutputFolderPath, itemToCopy.TargetPath);
+            logger.LogInformation("Copying {SourcePath} to {TargetPath}", itemToCopy.SourcePath, targetPath);
+            CopyContent(itemToCopy.SourcePath, targetPath, ignoredPathsWithOutputFolder);
         }
     }
     

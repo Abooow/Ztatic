@@ -12,6 +12,8 @@ builder.Services.AddZtaticService(opt =>
     opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
 });
 
+// builder.WebHost.UseStaticWebAssets();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

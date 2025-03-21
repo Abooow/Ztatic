@@ -66,7 +66,7 @@ internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogge
         
         await File.WriteAllTextAsync(outputPath, htmlContent);
         
-        // Find all anchor elements and crawl them.
+        // Find all anchor elements and to crawl.
         using var htmlDoc = htmlParser.ParseDocument(htmlContent);
         var links = htmlDoc.Links
             .OfType<IHtmlAnchorElement>()
