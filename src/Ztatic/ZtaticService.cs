@@ -1,19 +1,21 @@
 using Microsoft.Extensions.Logging;
+using Ztatic.Pipelines;
 
 namespace Ztatic;
 
-internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService> logger)
+internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService> logger, IServiceProvider services)
 {
     public ZtaticOptions Options => options;
-
+    
+    private readonly ContentMiddlewareDelegate contentMiddleware = (options.ContentPipeline ?? new ContentPipeline().CreateFiles()).Build();
+    
     public async Task GenerateStaticPagesAsync(string appUrl)
     {
-        // Generate static pages.
-        var crawler = new ZtaticCrawler(appUrl, options, logger);
+        var crawler = new ZtaticCrawler(appUrl, options, logger, services);
         await crawler.StartCrawlingAsync();
     }
 
-    public void CopyAssetsToOutput()
+    public async Task CopyAssetsToOutputAsync()
     {
         var uniqueItemsToCopy = options.ContentToCopyToOutput.DistinctBy(x => (x.SourcePath, x.TargetPath));
         var ignoredPathsWithOutputFolder = options.IgnoredPathsOnContentCopy.Select(x => Path.Combine(options.OutputFolderPath, x)).ToList();
@@ -21,12 +23,11 @@ internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService
         foreach(var itemToCopy in uniqueItemsToCopy)
         {
             var targetPath = Path.Combine(options.OutputFolderPath, itemToCopy.TargetPath);
-            logger.LogInformation("Copying {SourcePath} to {TargetPath}", itemToCopy.SourcePath, targetPath);
-            CopyContent(itemToCopy.SourcePath, targetPath, ignoredPathsWithOutputFolder);
+            await CopyContentAsync(itemToCopy.SourcePath, targetPath, ignoredPathsWithOutputFolder);
         }
     }
     
-    private void CopyContent(string sourcePath, string targetPath, List<string> ignoredPaths)
+    private async Task CopyContentAsync(string sourcePath, string targetPath, List<string> ignoredPaths)
     {
         if (ignoredPaths.Contains(targetPath))
             return;
@@ -35,43 +36,46 @@ internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService
         if (File.Exists(sourcePath))
         {
             var dir = Path.GetDirectoryName(targetPath);
-            if(dir is null)
+            if (dir is null)
                 return;
 
-            Directory.CreateDirectory(dir);
-            File.Copy(sourcePath, targetPath, true);
+            await using var stream = File.OpenRead(sourcePath);
+            await contentMiddleware.Invoke(new ContentContext()
+            {
+                Services = services,
+                Options = options,
+                SourcePath = sourcePath,
+                TargetPath = targetPath,
+                Content = stream
+            });
+            
             return;
         }
 
         if (!Directory.Exists(sourcePath))
         {
-            logger.LogError("Source path ({sourcePath}) does not exist", sourcePath);
+            logger.LogError("The directory '{SourcePath}' does not exist", sourcePath);
             return;
         }
 
-        if (!Directory.Exists(targetPath))
-            Directory.CreateDirectory(targetPath);
-
         var ignoredPathsWithTarget = ignoredPaths.Select(x => Path.Combine(targetPath, x)).ToList();
 
-        // Now Create all the directories.
-        foreach (var dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+        // Copy all the files from source directory.
+        foreach (var newSourcePath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
         {
-            var newDirPath = ChangeRootFolder(dirPath);
-            if(ignoredPathsWithTarget.Contains(newDirPath)) // Folder is mentioned in ignoredPaths, don't create it.
+            var newTargetPath = ChangeRootFolder(newSourcePath);
+            if (ignoredPathsWithTarget.Contains(newTargetPath))
                 continue;
 
-            Directory.CreateDirectory(newDirPath);
-        }
-
-        // Copy all the files & Replaces any files with the same name.
-        foreach (var newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-        {
-            var newPathWithNewDir = ChangeRootFolder(newPath);
-            if (ignoredPathsWithTarget.Contains(newPathWithNewDir) || !Directory.Exists(Path.GetDirectoryName(newPathWithNewDir))) // Folder where this file resides is mentioned in ignoredPaths.
-                continue;
-
-            File.Copy(newPath, newPathWithNewDir, true);
+            await using var stream = File.OpenRead(newSourcePath);
+            await contentMiddleware.Invoke(new ContentContext()
+            {
+                Services = services,
+                Options = options,
+                SourcePath = newSourcePath,
+                TargetPath = newTargetPath,
+                Content = stream
+            });
         }
 
         return;

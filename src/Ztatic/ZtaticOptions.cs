@@ -1,3 +1,5 @@
+using Ztatic.Pipelines;
+
 namespace Ztatic;
 
 public sealed class ZtaticOptions
@@ -15,6 +17,14 @@ public sealed class ZtaticOptions
     public List<string> IgnoredPathsOnContentCopy { get; } = [];
 
     public bool SuppressFileGeneration { get; set; }
+
+    internal ContentPipeline? ContentPipeline { get; set; }
+    
+    public void ConfigureContentPipeline(Action<ContentPipeline> pipeline)
+    {
+        ContentPipeline = new();
+        pipeline.Invoke(ContentPipeline);
+    }
 }
 
 public sealed record ContentToCopy(string SourcePath, string TargetPath);

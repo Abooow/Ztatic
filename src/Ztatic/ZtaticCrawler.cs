@@ -2,14 +2,16 @@ using System.Net;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using Microsoft.Extensions.Logging;
+using Ztatic.Pipelines;
 
 namespace Ztatic;
 
-internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogger logger)
+internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogger logger, IServiceProvider services)
 {
     private readonly HashSet<string> savedPathsSet = [];
     private readonly HttpClient httpClient = new();
     private readonly HtmlParser htmlParser = new();
+    private readonly ContentMiddlewareDelegate contentMiddleware = (options.ContentPipeline ?? new ContentPipeline().CreateFiles()).Build();
     
     internal async Task StartCrawlingAsync()
     {
@@ -60,13 +62,22 @@ internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogge
             logger.LogInformation("Expected text/html content type, but was {MediaType}.", mediaType);
             return;
         }
-        
+
         var htmlContent = await response.Content.ReadAsStringAsync();
         var outputPath = GetOutputPath(args.PathName);
         
-        await File.WriteAllTextAsync(outputPath, htmlContent);
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        stream.Seek(0, SeekOrigin.Begin);
+        await contentMiddleware.Invoke(new ContentContext()
+        {
+            Services = services,
+            Options = options,
+            SourcePath = requestUrl,
+            TargetPath = outputPath,
+            Content = stream
+        });
         
-        // Find all anchor elements and to crawl.
+        // Find all anchor elements to crawl.
         using var htmlDoc = htmlParser.ParseDocument(htmlContent);
         var links = htmlDoc.Links
             .OfType<IHtmlAnchorElement>()
@@ -97,13 +108,6 @@ internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogge
         
         if (outFilePath is null)
             throw new NullReferenceException();
-
-        var targetDir = Path.GetDirectoryName(outFilePath);
-        if (string.IsNullOrEmpty(targetDir))
-            throw new NullReferenceException();
-
-        if (!Directory.Exists(targetDir))
-            Directory.CreateDirectory(targetDir);
 
         return outFilePath;
     }

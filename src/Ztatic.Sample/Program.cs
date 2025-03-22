@@ -6,10 +6,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents();
 
-builder.Services.AddZtaticService(opt =>
+builder.Services.AddZtatic(opt =>
 {
     opt.ExplicitUrlsToFetch.Add("/explicit-fetch");
     opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
+    opt.ContentToCopyToOutput.Add(new ContentToCopy("ExtraContentToCopy", "ExtraContentToCopy"));
+    
+    opt.ConfigureContentPipeline(pipeline =>
+    {
+        pipeline.CreateFiles();
+    });
 });
 
 // builder.WebHost.UseStaticWebAssets();

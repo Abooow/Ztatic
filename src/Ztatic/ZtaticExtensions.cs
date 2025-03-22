@@ -7,7 +7,7 @@ namespace Ztatic;
 
 public static class ZtaticExtensions
 {
-    public static IServiceCollection AddZtaticService(this IServiceCollection services, Action<ZtaticOptions>? configureOptions = null)
+    public static IServiceCollection AddZtatic(this IServiceCollection services, Action<ZtaticOptions>? configureOptions = null)
     {
         var options = new ZtaticOptions();
         configureOptions?.Invoke(options);
@@ -53,14 +53,14 @@ public static class ZtaticExtensions
                 // Copy assets.
                 try
                 {
-                    ztaticService.CopyAssetsToOutput();
+                    await ztaticService.CopyAssetsToOutputAsync();
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "An error occurred while copying assets to output: {ErrorMessage}", ex.Message);
                 }
-                
-                if(shutdownApp)
+
+                if (shutdownApp)
                     lifetime.StopApplication();
             }
         );
