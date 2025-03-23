@@ -14,6 +14,7 @@ public static class ZtaticExtensions
 
         services.AddSingleton(options);
         services.AddSingleton<ZtaticService>();
+        services.AddSingleton<DiscoveredRoutes>();
         
         return services;
     }

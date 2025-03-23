@@ -6,7 +6,7 @@ using Ztatic.Pipelines;
 
 namespace Ztatic;
 
-internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogger logger, IServiceProvider services)
+internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, DiscoveredRoutes discoveredRoutes, ILogger logger, IServiceProvider services)
 {
     private readonly HashSet<string> savedPathsSet = [];
     private readonly HttpClient httpClient = new();
@@ -63,6 +63,7 @@ internal sealed class ZtaticCrawler(string appUrl, ZtaticOptions options, ILogge
             return;
         }
 
+        discoveredRoutes.AddRoute(args.PathName);
         var htmlContent = await response.Content.ReadAsStringAsync();
         var outputPath = GetOutputPath(args.PathName);
         

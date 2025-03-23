@@ -3,7 +3,7 @@ using Ztatic.Pipelines;
 
 namespace Ztatic;
 
-internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService> logger, IServiceProvider services)
+internal sealed class ZtaticService(ZtaticOptions options, DiscoveredRoutes discoveredRoutes, ILogger<ZtaticService> logger, IServiceProvider services)
 {
     public ZtaticOptions Options => options;
     
@@ -11,7 +11,7 @@ internal sealed class ZtaticService(ZtaticOptions options, ILogger<ZtaticService
     
     public async Task GenerateStaticPagesAsync(string appUrl)
     {
-        var crawler = new ZtaticCrawler(appUrl, options, logger, services);
+        var crawler = new ZtaticCrawler(appUrl, options, discoveredRoutes, logger, services);
         await crawler.StartCrawlingAsync();
     }
 
