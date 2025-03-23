@@ -16,8 +16,12 @@ public sealed class ZtaticOptions
 
     public List<string> IgnoredPathsOnContentCopy { get; } = [];
 
+    public string? SiteUrl { get; set; }
+    
+    public Func<IServiceProvider, ZtaticOptions, Task>? AfterContentGeneratedAction { get; set; }
+    
     public bool SuppressFileGeneration { get; set; }
-
+    
     internal ContentPipeline? ContentPipeline { get; set; }
     
     public void ConfigureContentPipeline(Action<ContentPipeline> pipeline)

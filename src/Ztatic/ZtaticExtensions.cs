@@ -19,6 +19,23 @@ public static class ZtaticExtensions
         return services;
     }
 
+    public static void GenerateSitemap(this ZtaticOptions options, string outputPath = "sitemap.xml")
+    {
+        options.AfterContentGeneratedAction += async (services, opt) =>
+        {
+            var logger = services.GetRequiredService<ILogger<ZtaticService>>();
+            if (string.IsNullOrWhiteSpace(opt.SiteUrl))
+            {
+                logger.LogWarning($"{nameof(ZtaticOptions)}.{nameof(ZtaticOptions.SiteUrl)} is null or empty, can not generate sitemap.");
+                return;
+            }
+
+            var discoveredRoutes = services.GetRequiredService<DiscoveredRoutes>();
+            await SitemapGenerator.GenerateSitemapAsync(opt.SiteUrl, discoveredRoutes.GetDiscoveredRoutes(), Path.Combine(opt.OutputFolderPath, outputPath));
+            logger.LogInformation("Generated sitemap to {OutputPath}.", Path.Combine(opt.OutputFolderPath, outputPath));
+        };
+    }
+    
     public static void UseZtaticGenerator(this WebApplication app, bool shutdownApp = false)
     {
         var logger = app.Services.GetRequiredService<ILogger<ZtaticService>>();
@@ -61,6 +78,9 @@ public static class ZtaticExtensions
                     logger.LogError(ex, "An error occurred while copying assets to output: {ErrorMessage}", ex.Message);
                 }
 
+                if (ztaticService.Options.AfterContentGeneratedAction is not null)
+                    await ztaticService.Options.AfterContentGeneratedAction.Invoke(app.Services, ztaticService.Options);
+                
                 if (shutdownApp)
                     lifetime.StopApplication();
             }

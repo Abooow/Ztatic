@@ -11,11 +11,14 @@ builder.Services.AddZtatic(opt =>
     opt.ExplicitUrlsToFetch.Add("/explicit-fetch");
     opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
     opt.ContentToCopyToOutput.Add(new ContentToCopy("ExtraContentToCopy", "ExtraContentToCopy"));
+    opt.SiteUrl = "https://myapp.com";
     
     opt.ConfigureContentPipeline(pipeline =>
     {
         pipeline.CreateFiles();
     });
+    
+    opt.GenerateSitemap();
 });
 
 // builder.WebHost.UseStaticWebAssets();
