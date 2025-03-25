@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Ztatic.Blogs;
 
 namespace Ztatic;
 
 public static class ZtaticExtensions
 {
-    public static IServiceCollection AddZtatic(this IServiceCollection services, Action<ZtaticOptions>? configureOptions = null)
+    public static ZtaticBuilder AddZtatic(this IServiceCollection services, Action<ZtaticOptions>? configureOptions = null)
     {
         var options = new ZtaticOptions();
         configureOptions?.Invoke(options);
@@ -16,9 +17,55 @@ public static class ZtaticExtensions
         services.AddSingleton<ZtaticService>();
         services.AddSingleton<DiscoveredRoutes>();
         
-        return services;
+        return new ZtaticBuilder(services, options);
     }
 
+    public static ZtaticBuilder AddBlogManager(this ZtaticBuilder ztaticBuilder, Action<BlogConfigOptions>? configureOptions = null)
+    {
+        return AddBlogManager<BlogManager>(ztaticBuilder, configureOptions);
+    }
+    
+    public static ZtaticBuilder AddBlogManager<TBlogManager>(this ZtaticBuilder ztaticBuilder, Action<BlogConfigOptions>? configureOptions = null)
+        where TBlogManager : class, IBlogManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>
+    {
+        var blogOptions = new BlogConfigOptions();
+        configureOptions?.Invoke(blogOptions);
+        ztaticBuilder.Services.AddSingleton(blogOptions);
+        ztaticBuilder.Services.AddSingleton<TBlogManager>();
+
+        ztaticBuilder.Options.BeforeContentGeneratedAction += async (services, opt) =>
+        {
+            var blogManager = services.GetRequiredService<TBlogManager>();
+
+            await blogManager.LoadBlogSettings();
+            await blogManager.ParseAndAddPostsAsync();
+        };
+        
+        return ztaticBuilder;
+    }
+    
+    public static ZtaticBuilder AddBlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(this ZtaticBuilder ztaticBuilder, Action<BlogConfigOptions>? configureOptions = null)
+        where TBlogInfo : BlogInfo, new()
+        where TBlogAuthor : BlogAuthor, new()
+        where TBlogPost : BlogPost<TBlogInfo, TBlogAuthor>, new()
+        where TSettings : BlogSettings<TBlogAuthor>, new()
+    {
+        var blogOptions = new BlogConfigOptions();
+        configureOptions?.Invoke(blogOptions);
+        ztaticBuilder.Services.AddSingleton(blogOptions);
+        ztaticBuilder.Services.AddSingleton<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>();
+    
+        ztaticBuilder.Options.BeforeContentGeneratedAction += async (services, opt) =>
+        {
+            var blogManager = services.GetRequiredService<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>();
+    
+            await blogManager.LoadBlogSettings();
+            await blogManager.ParseAndAddPostsAsync();
+        };
+        
+        return ztaticBuilder;
+    }
+    
     public static void GenerateSitemap(this ZtaticOptions options, string outputPath = "sitemap.xml")
     {
         options.AfterContentGeneratedAction += async (services, opt) =>
@@ -58,6 +105,9 @@ public static class ZtaticExtensions
                     Directory.Delete(ztaticService.Options.OutputFolderPath, true);
                 Directory.CreateDirectory(ztaticService.Options.OutputFolderPath);
                 
+                if (ztaticService.Options.BeforeContentGeneratedAction is not null)
+                    await ztaticService.Options.BeforeContentGeneratedAction.Invoke(app.Services, ztaticService.Options);
+                
                 // Generate pages.
                 try
                 {
@@ -87,3 +137,5 @@ public static class ZtaticExtensions
         );
     }
 }
+
+public sealed record ZtaticBuilder(IServiceCollection Services, ZtaticOptions Options);

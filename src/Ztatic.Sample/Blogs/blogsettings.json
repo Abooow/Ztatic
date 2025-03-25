@@ -1,0 +1,15 @@
+{
+  "authors": [
+    {
+      "id": "daniel",
+      "name": "Daniel",
+      "profileImage": null
+    }
+  ],
+  "tags": [
+    {
+      "id": "test",
+      "name": "Test"
+    }
+  ]
+}

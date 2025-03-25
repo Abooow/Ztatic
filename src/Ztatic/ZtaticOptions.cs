@@ -18,6 +18,8 @@ public sealed class ZtaticOptions
 
     public string? SiteUrl { get; set; }
     
+    public Func<IServiceProvider, ZtaticOptions, Task>? BeforeContentGeneratedAction { get; set; }
+    
     public Func<IServiceProvider, ZtaticOptions, Task>? AfterContentGeneratedAction { get; set; }
     
     public bool SuppressFileGeneration { get; set; }

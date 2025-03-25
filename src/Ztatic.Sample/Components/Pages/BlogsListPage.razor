@@ -1,17 +1,12 @@
 @page "/blogs"
+@inject BlogManager BlogManager
 
 <h1>BlogsPage</h1>
 
-@foreach (var blog in Blogs)
+@foreach (var blog in BlogManager.GetBlogPosts())
 {
-    <p><a href="/blogs/@blog.Slug">@blog.Name</a></p>
+    <p><a href="/blogs/@blog.Info.Slug">@blog.Info.Title</a></p>
 }
 
 @code {
-    public static (string Slug, string Name)[] Blogs { get; } =
-    [
-        ("test", "Test"),
-        ("first-blog", "First Blog"),
-        ("blazor-ztatic", "Blazor Ztatic")
-    ];
 }

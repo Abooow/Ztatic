@@ -1,28 +1,30 @@
 @page "/blogs/{Slug}"
 @inject DiscoveredRoutes DiscoveredRoutes
+@inject BlogManager BlogManager
 
-@{
-    var blog = BlogsListPage.Blogs.FirstOrDefault(x => x.Slug == Slug);
-}
-
-@if (blog == default)
+@if (post is null)
 {
     <h1>Blog not found</h1>
 }
 else
 {
-    <h1>@blog.Name</h1>
-    
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-    <p><small>generated @DateTime.Now</small></p>
+    <h1>@post.Info.Title</h1>
+    <p>@string.Join(", ", post.Authors.Select(x => x.Name))</p>
+    <p>@post.Info.Published</p>
+
+    @((MarkupString)post.HtmlContent)
 }
 
 @code {
     [Parameter]
     public required string Slug { get; set; }
 
+    private BlogPost? post;
+    
     protected override void OnInitialized()
     {
-        DiscoveredRoutes.UpdateRouteInfo($"/blogs/{Slug}", new RouteInfo() { LastModified = DateTime.Now });
+        post = BlogManager.TryGetBlogPost(Slug);
+        if (post is not null)
+            DiscoveredRoutes.UpdateRouteInfo($"/blogs/{Slug}", new RouteInfo() { LastModified = post.Info.LastModified });
     }
 }

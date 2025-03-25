@@ -1,4 +1,5 @@
 using Ztatic;
+using Ztatic.Blogs;
 using Ztatic.Sample.Components;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +20,7 @@ builder.Services.AddZtatic(opt =>
     });
     
     opt.GenerateSitemap();
-});
+}).AddBlogManager();
 
 // builder.WebHost.UseStaticWebAssets();
 
