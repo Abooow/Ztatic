@@ -17,6 +17,7 @@ builder.Services.AddZtatic(opt =>
     opt.ConfigureContentPipeline(pipeline =>
     {
         pipeline.CreateFiles();
+        pipeline.MinifyContent();
     });
     
     opt.GenerateSitemap();

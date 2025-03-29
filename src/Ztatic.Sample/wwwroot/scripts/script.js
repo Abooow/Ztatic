@@ -1,1 +1,6 @@
-console.log("Hello World!");
+// test.
+function run() {
+    console.log("Hello World!");
+}
+
+run();
