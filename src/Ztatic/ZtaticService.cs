@@ -22,8 +22,7 @@ internal sealed class ZtaticService(ZtaticOptions options, DiscoveredRoutes disc
         
         foreach(var itemToCopy in uniqueItemsToCopy)
         {
-            var targetPath = Path.Combine(options.OutputFolderPath, itemToCopy.TargetPath);
-            await CopyContentAsync(itemToCopy.SourcePath, targetPath, ignoredPathsWithOutputFolder);
+            await CopyContentAsync(itemToCopy.SourcePath, itemToCopy.TargetPath, ignoredPathsWithOutputFolder);
         }
     }
     

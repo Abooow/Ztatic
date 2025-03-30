@@ -4,17 +4,17 @@ namespace Ztatic;
 
 internal static class StaticWebAssetsFinder
 {
-    public static List<ContentToCopy> FindDefaultStaticAssets(IFileProvider fileProvider)
+    public static List<ContentToCopy> FindDefaultStaticAssets(string outputFolderPath, IFileProvider fileProvider)
     {
         List<ContentToCopy> assets = [];
         
-        FindDefaultStaticAssets(fileProvider, "", assets);
+        FindDefaultStaticAssets(fileProvider, outputFolderPath, "", assets);
         assets.AddRange(ProcessFiles(assets));
      
         return assets.DistinctBy(x => (x.SourcePath, x.TargetPath)).ToList();
     }
     
-    private static void FindDefaultStaticAssets(IFileProvider fileProvider, string subPath, List<ContentToCopy> assets)
+    private static void FindDefaultStaticAssets(IFileProvider fileProvider, string outputFolderPath, string subPath, List<ContentToCopy> assets)
     {
         var contents = fileProvider.GetDirectoryContents(subPath);
 
@@ -23,9 +23,9 @@ internal static class StaticWebAssetsFinder
             var fullPath = $"{subPath}{item.Name}";
 
             if (item.IsDirectory)
-                FindDefaultStaticAssets(fileProvider, $"{fullPath}/", assets);
+                FindDefaultStaticAssets(fileProvider, outputFolderPath, $"{fullPath}/", assets);
             else if (item.PhysicalPath is not null)
-                assets.Add(new ContentToCopy(item.PhysicalPath, fullPath));
+                assets.Add(new ContentToCopy(item.PhysicalPath, Path.Combine(outputFolderPath, fullPath)));
         }
     }
 

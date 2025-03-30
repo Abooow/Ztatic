@@ -94,7 +94,12 @@ public static class ZtaticExtensions
             return;
         }
 
-        var assets = StaticWebAssetsFinder.FindDefaultStaticAssets(app.Environment.WebRootFileProvider);
+        // Update content to copy target path to include Options.OutputFolderPath.
+        var contentToCopy = ztaticService.Options.ContentToCopyToOutput.Select(x => x with { TargetPath = Path.Combine(ztaticService.Options.OutputFolderPath, x.TargetPath) }).ToList();
+        ztaticService.Options.ContentToCopyToOutput.Clear();
+        ztaticService.Options.ContentToCopyToOutput.AddRange(contentToCopy);
+        
+        var assets = StaticWebAssetsFinder.FindDefaultStaticAssets(ztaticService.Options.OutputFolderPath, app.Environment.WebRootFileProvider);
         ztaticService.Options.ContentToCopyToOutput.AddRange(assets);
         
         var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();

@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WebMarkupMin.Core;
@@ -35,12 +36,12 @@ public static class ContentPipelineExtensions
     /// <param name="extensionsToMinify">Default extensions is [".html", ".css", ".js"]</param>
     public static ContentPipeline MinifyContent(this ContentPipeline pipeline, string[]? extensionsToMinify = null)
     {
-        var extensions = extensionsToMinify ?? [".html", ".css", ".js"];
         pipeline.Use(async (ctx, next) =>
         {
             await next(ctx);
 
             var extension = Path.GetExtension(ctx.TargetPath).ToLower();
+            var extensions = extensionsToMinify ?? [".html", ".css", ".js"];
             if (extension is not (".html" or ".css" or ".js") || !extensions.Contains(extension))
                 return;
             
@@ -106,5 +107,35 @@ public static class ContentPipelineExtensions
         }
 
         return ("", $"Unsupported extension: {extension}");
+    }
+    
+    /// <param name="extensionsToCompress">Default extensions is [".html", ".css", ".js"]</param>
+    public static ContentPipeline CreateGZipCompressedFiles(this ContentPipeline pipeline, string[]? extensionsToCompress = null)
+    {
+        pipeline.Use(async (ctx, next) =>
+        {
+            await next(ctx);
+
+            var extension = Path.GetExtension(ctx.TargetPath).ToLower();
+            var extensions = extensionsToCompress ?? [".html", ".css", ".js"];
+            if (extension is ".gz" || !extensions.Contains(extension))
+                return;
+
+            // A compressed version will already be copied.
+            var compressedTargetPath = ctx.TargetPath + ".gz";
+            if (ctx.Options.ContentToCopyToOutput.Any(x => x.TargetPath == compressedTargetPath))
+                return;
+            
+            var logger = ctx.Services.GetRequiredService<ILogger<ContentPipeline>>();
+            logger.LogInformation("Compressing {TargetPath} to {CompressedTargetPath}", ctx.TargetPath, compressedTargetPath);
+            
+            await using var compressedFileStream = File.Create(compressedTargetPath);
+            await using var gzipStream = new GZipStream(compressedFileStream, CompressionLevel.SmallestSize);
+
+            await ctx.Content.CopyToAsync(gzipStream);
+            ctx.Content.Position = 0;
+        });
+        
+        return pipeline;
     }
 }
