@@ -17,7 +17,7 @@ public class BlogPost<TBlogInfo, TBlogAuthor>
 {
     public TBlogInfo Info { get; set; }
     
-    public  string HtmlContent { get; set; }
+    public string HtmlContent { get; set; }
 
     public List<TBlogAuthor> Authors { get; set; } = [];
     

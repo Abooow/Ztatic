@@ -70,6 +70,9 @@ public static class ZtaticExtensions
     {
         options.AfterContentGeneratedAction += async (services, opt) =>
         {
+            if (opt.SuppressFileGeneration)
+                return;
+            
             var logger = services.GetRequiredService<ILogger<ZtaticService>>();
             if (string.IsNullOrWhiteSpace(opt.SiteUrl))
             {
@@ -87,54 +90,55 @@ public static class ZtaticExtensions
     {
         var logger = app.Services.GetRequiredService<ILogger<ZtaticService>>();
         var ztaticService = app.Services.GetRequiredService<ZtaticService>();
-
-        if (ztaticService.Options.SuppressFileGeneration)
-        {
-            logger.LogInformation("Ztatic is disabled.");
-            return;
-        }
+        var options = ztaticService.Options;
 
         // Update content to copy target path to include Options.OutputFolderPath.
-        var contentToCopy = ztaticService.Options.ContentToCopyToOutput.Select(x => x with { TargetPath = Path.Combine(ztaticService.Options.OutputFolderPath, x.TargetPath) }).ToList();
-        ztaticService.Options.ContentToCopyToOutput.Clear();
-        ztaticService.Options.ContentToCopyToOutput.AddRange(contentToCopy);
+        var contentToCopy = options.ContentToCopyToOutput.Select(x => x with { TargetPath = Path.Combine(options.OutputFolderPath, x.TargetPath) }).ToList();
+        options.ContentToCopyToOutput.Clear();
+        options.ContentToCopyToOutput.AddRange(contentToCopy);
         
-        var assets = StaticWebAssetsFinder.FindDefaultStaticAssets(ztaticService.Options.OutputFolderPath, app.Environment.WebRootFileProvider);
-        ztaticService.Options.ContentToCopyToOutput.AddRange(assets);
+        var assets = StaticWebAssetsFinder.FindDefaultStaticAssets(options.OutputFolderPath, app.Environment.WebRootFileProvider);
+        options.ContentToCopyToOutput.AddRange(assets);
         
         var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
         lifetime.ApplicationStarted.Register(async void () =>
             {
                 // Clear and create output folder.
-                if (Directory.Exists(ztaticService.Options.OutputFolderPath))
-                    Directory.Delete(ztaticService.Options.OutputFolderPath, true);
-                Directory.CreateDirectory(ztaticService.Options.OutputFolderPath);
-                
-                if (ztaticService.Options.BeforeContentGeneratedAction is not null)
-                    await ztaticService.Options.BeforeContentGeneratedAction.Invoke(app.Services, ztaticService.Options);
-                
-                // Generate pages.
-                try
+                if (!options.SuppressFileGeneration)
                 {
-                    await ztaticService.GenerateStaticPagesAsync(app.Urls.First()).ConfigureAwait(false);
+                    if (Directory.Exists(options.OutputFolderPath))
+                        Directory.Delete(options.OutputFolderPath, true);
+                    Directory.CreateDirectory(options.OutputFolderPath);
                 }
-                catch (Exception ex)
+                
+                if (options.BeforeContentGeneratedAction is not null)
+                    await options.BeforeContentGeneratedAction.Invoke(app.Services, options);
+
+                if (!options.SuppressFileGeneration)
                 {
-                    logger.LogError(ex, "An error occurred while generating static pages: {ErrorMessage}", ex.Message);
+                    // Generate pages.
+                    try
+                    {
+                        await ztaticService.GenerateStaticPagesAsync(app.Urls.First()).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "An error occurred while generating static pages: {ErrorMessage}", ex.Message);
+                    }
+
+                    // Copy assets.
+                    try
+                    {
+                        await ztaticService.CopyAssetsToOutputAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "An error occurred while copying assets to output: {ErrorMessage}", ex.Message);
+                    }
                 }
 
-                // Copy assets.
-                try
-                {
-                    await ztaticService.CopyAssetsToOutputAsync();
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "An error occurred while copying assets to output: {ErrorMessage}", ex.Message);
-                }
-
-                if (ztaticService.Options.AfterContentGeneratedAction is not null)
-                    await ztaticService.Options.AfterContentGeneratedAction.Invoke(app.Services, ztaticService.Options);
+                if (options.AfterContentGeneratedAction is not null)
+                    await options.AfterContentGeneratedAction.Invoke(app.Services, options);
                 
                 if (shutdownApp)
                     lifetime.StopApplication();
