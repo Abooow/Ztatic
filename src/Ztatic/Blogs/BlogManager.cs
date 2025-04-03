@@ -49,9 +49,9 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
 {
     public TSettings Settings { get; private set; } = new();
     
-    private readonly Dictionary<string, TBlogPost> posts = [];
-    private readonly Dictionary<string, TBlogAuthor> authors = [];
-    private readonly Dictionary<string, BlogTag> tags = [];
+    private readonly Dictionary<string, TBlogPost> posts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TBlogAuthor> authors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, BlogTag> tags = new(StringComparer.OrdinalIgnoreCase);
 
     public async Task LoadBlogSettingsAsync(string settingsPath)
     {
@@ -68,7 +68,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to deserialize blog settings file '{Path}' to type '{Type}'.", settingsPath, typeof(TSettings));
+            logger.LogError(e, "Failed to deserialize blog settings file '{Path}' to type '{Type}'", settingsPath, typeof(TSettings));
             return;
         }
 
@@ -237,8 +237,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         }
         
         var fileName = Path.GetFileNameWithoutExtension(filePath);
-        blogInfo.Slug = (new[] { blogInfo.Slug, blogInfo.Id, fileName }).First(x => !string.IsNullOrWhiteSpace(x));
-        blogInfo.Id = !string.IsNullOrWhiteSpace(blogInfo.Id) ? blogInfo.Id : blogInfo.Slug;
+        blogInfo.Id = !string.IsNullOrWhiteSpace(blogInfo.Id) ? blogInfo.Id : fileName;
         blogInfo.ThumbnailAltText = !string.IsNullOrWhiteSpace(blogInfo.ThumbnailAltText) ? blogInfo.ThumbnailAltText : blogInfo.Title;
         
         var contentWithoutFrontMatter = markdownContent[(yamlBlock == null ? 0 : yamlBlock.Span.End + 1)..];

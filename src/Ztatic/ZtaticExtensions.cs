@@ -108,7 +108,7 @@ public static class ZtaticExtensions
 
             var discoveredRoutes = services.GetRequiredService<DiscoveredRoutes>();
             await SitemapGenerator.GenerateSitemapAsync(opt.SiteUrl, discoveredRoutes.GetDiscoveredRoutes(), Path.Combine(opt.OutputFolderPath, outputPath));
-            logger.LogInformation("Generated sitemap to {OutputPath}.", Path.Combine(opt.OutputFolderPath, outputPath));
+            logger.LogInformation("Generated sitemap to {OutputPath}", Path.Combine(opt.OutputFolderPath, outputPath));
         };
     }
     

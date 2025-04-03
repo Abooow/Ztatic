@@ -5,7 +5,7 @@
 
 @foreach (var blog in BlogManager.GetBlogPosts())
 {
-    <p><a href="/blogs/@blog.Info.Slug">@blog.Info.Title</a></p>
+    <p><a href="/blogs/@blog.Info.Id">@blog.Info.Title</a></p>
 }
 
 @code {

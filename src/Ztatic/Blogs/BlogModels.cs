@@ -32,8 +32,6 @@ public class BlogInfo
 
     public string Title { get; set; } = "Empty title";
     
-    public string Slug { get; set; }
-    
     public string? Description { get; set; }
     
     public int ReadTimeMinutes { get; set; }
