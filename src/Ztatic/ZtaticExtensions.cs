@@ -32,14 +32,27 @@ public static class ZtaticExtensions
         configureOptions?.Invoke(blogOptions);
         ztaticBuilder.Services.AddSingleton(blogOptions);
         ztaticBuilder.Services.AddSingleton<TBlogManager>();
+        ztaticBuilder.Services.AddSingleton<IBlogManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>>(x => x.GetRequiredService<TBlogManager>());
 
         ztaticBuilder.Options.BeforeContentGeneratedAction += async (services, opt) =>
         {
             var blogManager = services.GetRequiredService<TBlogManager>();
 
-            await blogManager.LoadBlogSettings();
-            await blogManager.ParseAndAddPostsAsync();
+            await blogManager.LoadBlogSettingsAsync(blogOptions.SettingsPath);
+            await blogManager.ParseAndAddPostsAsync(blogOptions.PostsPath, blogOptions.PostFilePattern);
         };
+        
+        if (blogOptions.EnableHotReload)
+        {
+            ztaticBuilder.Services.AddSingleton<BlogHotReloadManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>>();
+            ztaticBuilder.Options.BeforeContentGeneratedAction += (services, opt) =>
+            {
+                var hotReloadManager = services.GetRequiredService<BlogHotReloadManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>>();
+                hotReloadManager.StartHotReload();
+                
+                return Task.CompletedTask;
+            };
+        }
         
         return ztaticBuilder;
     }
@@ -54,14 +67,27 @@ public static class ZtaticExtensions
         configureOptions?.Invoke(blogOptions);
         ztaticBuilder.Services.AddSingleton(blogOptions);
         ztaticBuilder.Services.AddSingleton<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>();
+        ztaticBuilder.Services.AddSingleton<IBlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>(x => x.GetRequiredService<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>());
     
         ztaticBuilder.Options.BeforeContentGeneratedAction += async (services, opt) =>
         {
             var blogManager = services.GetRequiredService<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>>();
     
-            await blogManager.LoadBlogSettings();
-            await blogManager.ParseAndAddPostsAsync();
+            await blogManager.LoadBlogSettingsAsync(blogOptions.SettingsPath);
+            await blogManager.ParseAndAddPostsAsync(blogOptions.PostsPath, blogOptions.PostFilePattern);
         };
+        
+        if (blogOptions.EnableHotReload)
+        {
+            ztaticBuilder.Services.AddSingleton<BlogHotReloadManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>>();
+            ztaticBuilder.Options.BeforeContentGeneratedAction += (services, opt) =>
+            {
+                var hotReloadManager = services.GetRequiredService<BlogHotReloadManager<BlogInfo, BlogAuthor, BlogPost<BlogInfo, BlogAuthor>, BlogSettings<BlogAuthor>>>();
+                hotReloadManager.StartHotReload();
+                
+                return Task.CompletedTask;
+            };
+        }
         
         return ztaticBuilder;
     }

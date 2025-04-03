@@ -19,6 +19,8 @@ public class BlogPost<TBlogInfo, TBlogAuthor>
     
     public string HtmlContent { get; set; }
 
+    public string? File { get; set; }
+
     public List<TBlogAuthor> Authors { get; set; } = [];
     
     public List<BlogTag> Tags { get; set; } = [];

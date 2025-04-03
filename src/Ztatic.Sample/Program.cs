@@ -22,7 +22,10 @@ builder.Services.AddZtatic(opt =>
     });
     
     opt.GenerateSitemap();
-}).AddBlogManager();
+}).AddBlogManager(opt =>
+{
+    opt.EnableHotReload = true;
+});
 
 // builder.WebHost.UseStaticWebAssets();
 

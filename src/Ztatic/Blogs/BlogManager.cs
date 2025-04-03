@@ -11,7 +11,7 @@ public sealed class BlogManager(BlogConfigOptions config, ILogger<BlogManager> l
 {
 }
 
-public interface IBlogManager<in TBlogInfo, out TBlogAuthor, out TBlogPost, out TSettings>
+public interface IBlogManager<TBlogInfo, out TBlogAuthor, out TBlogPost, out TSettings>
     where TBlogInfo : BlogInfo, new()
     where TBlogAuthor : BlogAuthor, new()
     where TBlogPost : BlogPost<TBlogInfo, TBlogAuthor>, new()
@@ -19,15 +19,25 @@ public interface IBlogManager<in TBlogInfo, out TBlogAuthor, out TBlogPost, out 
 {
     TSettings Settings { get; }
     
-    Task LoadBlogSettings();
-    Task ParseAndAddPostsAsync();
+    Task LoadBlogSettingsAsync(string settingsPath);
+    Task ParseAndAddPostsAsync(string postsPath, string postFilePattern = "*.md");
     void Clear();
-    TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo);
+    
+    TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, string? file = null);
+    bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, string? file = null);
+    bool RemovePost(string id);
     
     TBlogPost? TryGetBlogPost(string id);
+    TBlogPost? TryGetBlogPostByFile(string file);
+
     IEnumerable<TBlogPost> GetBlogPosts();
     IEnumerable<TBlogAuthor> GetAuthors();
     IEnumerable<BlogTag> GetTags();
+    
+    Task<string> ParseMarkdownFileContentAsync(string filePath);
+    Task<(string HtmlContent, TBlogInfo BlogInfo)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null);
+    Task<(string HtmlContent, T BlogInfo)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
+        where T : BlogInfo, new();
 }
 
 public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfigOptions config, ILogger<BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>> logger)
@@ -43,22 +53,22 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
     private readonly Dictionary<string, TBlogAuthor> authors = [];
     private readonly Dictionary<string, BlogTag> tags = [];
 
-    public async Task LoadBlogSettings()
+    public async Task LoadBlogSettingsAsync(string settingsPath)
     {
-        if (!File.Exists(config.SettingsPath))
+        if (!File.Exists(settingsPath))
         {
-            logger.LogWarning("The blog settings path '{Path}' does not exist.", config.SettingsPath);
+            logger.LogWarning("The blog settings path '{Path}' does not exist.", settingsPath);
             return;
         }
         
-        var json = await File.ReadAllTextAsync(config.SettingsPath);
+        var json = await File.ReadAllTextAsync(settingsPath);
         try
         {
             Settings = JsonSerializer.Deserialize<TSettings>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
         }
         catch (Exception e)
         {
-            logger.LogWarning("Failed to deserialize blog settings file '{Path}' to type '{Type}'. Message: {Error}", config.SettingsPath, typeof(TSettings), e.Message);
+            logger.LogError(e, "Failed to deserialize blog settings file '{Path}' to type '{Type}'.", settingsPath, typeof(TSettings));
             return;
         }
 
@@ -73,11 +83,11 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         }
     }
     
-    public async Task ParseAndAddPostsAsync()
+    public async Task ParseAndAddPostsAsync(string postsPath, string postFilePattern = "*.md")
     {
-        if (!Directory.Exists(config.PostsPath))
+        if (!Directory.Exists(postsPath))
         {
-            logger.LogWarning("The blogs directory path '{Path}' does not exist.", config.PostsPath);
+            logger.LogWarning("The blogs directory path '{Path}' does not exist.", postsPath);
             return;
         }
         
@@ -87,11 +97,11 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
             RecurseSubdirectories = true
         };
 
-        var files = Directory.GetFiles(config.PostsPath, config.PostFilePattern, enumerationOptions);
+        var files = Directory.GetFiles(postsPath, postFilePattern, enumerationOptions);
         foreach (var file in files)
         {
             var (htmlContent, blogInfo) = await ParseMarkdownFileAsync<TBlogInfo>(file);
-            AddPost(htmlContent, blogInfo);
+            AddPost(htmlContent, blogInfo, file);
         }
     }
 
@@ -102,12 +112,13 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         tags.Clear();
     }
     
-    public TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo)
+    public TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, string? file = null)
     {
         var post = new TBlogPost()
         {
             HtmlContent = htmlContent,
             Info = blogInfo,
+            File = file,
             Authors = blogInfo.Authors.Select(GetOrCreateBlogAuthor).ToList(),
             Tags = blogInfo.Tags.Select(GetOrCreateBlogTag).ToList()
         };
@@ -118,6 +129,31 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return posts[blogInfo.Id] = post;
     }
 
+    public bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, string? file = null)
+    {
+        if (!posts.TryGetValue(id, out var post))
+            return false;
+        
+        if (id != blogInfo.Id)
+        {
+            posts.Remove(id);
+            posts.Add(blogInfo.Id, post);
+        }
+        
+        post.Info = blogInfo;
+        post.HtmlContent = htmlContent;
+        post.Authors = blogInfo.Authors.Select(GetOrCreateBlogAuthor).ToList();
+        post.Tags = blogInfo.Tags.Select(GetOrCreateBlogTag).ToList();
+        post.File = file ?? post.File;
+        
+        return true;
+    }
+
+    public bool RemovePost(string id)
+    {
+        return posts.Remove(id);
+    }
+    
     private TBlogAuthor GetOrCreateBlogAuthor(string authorId)
     {
         if (authors.TryGetValue(authorId, out var author))
@@ -140,6 +176,11 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return post;
     }
     
+    public TBlogPost? TryGetBlogPostByFile(string file)
+    {
+        return posts.Values.FirstOrDefault(x => x.File == file);
+    }
+    
     public IEnumerable<TBlogPost> GetBlogPosts()
     {
         return posts.Values;
@@ -155,11 +196,16 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return tags.Values;
     }
     
-    public async Task<string> ParseMarkdownFileAsync(string filePath)
+    public async Task<string> ParseMarkdownFileContentAsync(string filePath)
     {
         var markdownContent = await File.ReadAllTextAsync(filePath);
         var htmlContent = Markdown.ToHtml(markdownContent, config.MarkdownPipeline);
         return htmlContent;
+    }
+
+    public Task<(string HtmlContent, TBlogInfo BlogInfo)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null)
+    {
+        return ParseMarkdownFileAsync<TBlogInfo>(filePath, frontMatterDeserializer);
     }
     
     public async Task<(string HtmlContent, T BlogInfo)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
@@ -186,7 +232,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
             catch(Exception e)
             {
                 blogInfo = new T();
-                logger.LogWarning("Cannot deserialize YAML front matter in {file}. The default one will be used! Error: {exceptionMessage}", filePath, e.Message + e.InnerException?.Message);
+                logger.LogWarning("Cannot deserialize YAML front matter in {FilePath}. The default one will be used! Error: {ExceptionMessage}", filePath, e.Message + e.InnerException?.Message);
             }
         }
         
