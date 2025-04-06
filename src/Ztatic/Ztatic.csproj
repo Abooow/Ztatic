@@ -7,6 +7,24 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <!-- NuGet package metadata -->
+    <PropertyGroup>
+        <PackageId>Ztatic</PackageId>
+        <Version>1.0.0-preview.1</Version>
+        <Authors>Daniel Abdulahad</Authors>
+        <Description>Generate static sites using Blazor.</Description>
+        <PackageTags>blazor;static-site-generator</PackageTags>
+        <PackageProjectUrl>https://github.com/Abooow/Ztatic</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Abooow/Ztatic.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+    
     <ItemGroup>
       <PackageReference Include="AngleSharp" Version="1.2.0" />
       <PackageReference Include="Markdig" Version="0.40.0" />
@@ -18,5 +36,20 @@
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>
     </ItemGroup>
-    
+
+    <ItemGroup>
+        <!-- README -->
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>README.md</PackagePath>
+            <Link>README.md</Link>
+        </None>
+
+        <!-- Icon -->
+        <None Include="..\..\images\icon.png">
+            <Pack>True</Pack>
+            <PackagePath>icon.png</PackagePath>
+            <Link>icon.png</Link>
+        </None>
+    </ItemGroup>
 </Project>
