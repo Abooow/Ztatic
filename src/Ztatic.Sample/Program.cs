@@ -12,7 +12,7 @@ builder.Services.AddZtatic(opt =>
     opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
     opt.ContentToCopyToOutput.Add(new ContentToCopy("ExtraContentToCopy", "ExtraContentToCopy"));
     opt.SiteUrl = "https://myapp.com";
-    opt.SuppressFileGeneration = false;
+    opt.SuppressFileGeneration = true;
     
     opt.ConfigureContentPipeline(pipeline =>
     {

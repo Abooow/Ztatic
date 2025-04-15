@@ -183,7 +183,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
     
     public IEnumerable<TBlogPost> GetBlogPosts()
     {
-        return posts.Values;
+        return posts.Values.OrderByDescending(x => x.Info.Published);
     }
     
     public IEnumerable<TBlogAuthor> GetAuthors()

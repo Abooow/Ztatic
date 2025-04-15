@@ -9,6 +9,12 @@
 else
 {
     <h1>@post.Info.Title</h1>
+    <p>
+        @foreach (var blogTag in post.Tags)
+        {
+            <a href="/blogs/tags/@blogTag.Id">@blogTag.Name</a>
+        }
+    </p>
     <p>@string.Join(", ", post.Authors.Select(x => x.Name))</p>
     <p>@post.Info.Published</p>
 
