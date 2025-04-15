@@ -8,7 +8,7 @@ builder.Services.AddRazorComponents();
 
 builder.Services.AddZtatic(opt =>
 {
-    opt.ExplicitUrlsToFetch.Add("/explicit-fetch");
+    opt.ExplicitUrlsToFetch.AddRange("/explicit-fetch", "/404");
     opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
     opt.ContentToCopyToOutput.Add(new ContentToCopy("ExtraContentToCopy", "ExtraContentToCopy"));
     opt.SiteUrl = "https://myapp.com";
@@ -27,7 +27,7 @@ builder.Services.AddZtatic(opt =>
     opt.EnableHotReload = true;
 });
 
-// builder.WebHost.UseStaticWebAssets();
+builder.WebHost.UseStaticWebAssets();
 
 var app = builder.Build();
 

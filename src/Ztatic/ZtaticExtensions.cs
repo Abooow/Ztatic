@@ -92,7 +92,8 @@ public static class ZtaticExtensions
         return ztaticBuilder;
     }
     
-    public static void GenerateSitemap(this ZtaticOptions options, string outputPath = "sitemap.xml")
+    /// <param name="ignoredUrls">Default urls is ["/404"]</param>
+    public static void GenerateSitemap(this ZtaticOptions options, string[]? ignoredUrls = null, string outputPath = "sitemap.xml")
     {
         options.AfterContentGeneratedAction += async (services, opt) =>
         {
@@ -107,7 +108,7 @@ public static class ZtaticExtensions
             }
 
             var discoveredRoutes = services.GetRequiredService<DiscoveredRoutes>();
-            await SitemapGenerator.GenerateSitemapAsync(opt.SiteUrl, discoveredRoutes.GetDiscoveredRoutes(), Path.Combine(opt.OutputFolderPath, outputPath));
+            await SitemapGenerator.GenerateSitemapAsync(opt.SiteUrl, discoveredRoutes.GetDiscoveredRoutes(), ignoredUrls ?? ["/404"], Path.Combine(opt.OutputFolderPath, outputPath));
             logger.LogInformation("Generated sitemap to {OutputPath}", Path.Combine(opt.OutputFolderPath, outputPath));
         };
     }

@@ -5,7 +5,7 @@ namespace Ztatic;
 
 public static class SitemapGenerator
 {
-    public static async Task GenerateSitemapAsync(string siteUrl, IEnumerable<DiscoveredRoute> routes, string outputPath)
+    public static async Task GenerateSitemapAsync(string siteUrl, IEnumerable<DiscoveredRoute> routes, string[] ignoredUrls, string outputPath)
     {
         var builder = new StringBuilder();
         builder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
@@ -13,6 +13,9 @@ public static class SitemapGenerator
 
         foreach (var route in routes)
         {
+            if (ignoredUrls.Contains(route.Url, StringComparer.OrdinalIgnoreCase))
+                continue;
+            
             var pageUrl = siteUrl.TrimEnd('/') + EncodeUrl(route.Url);
             builder.AppendLine("  <url>");
             builder.AppendLine($"    <loc>{pageUrl}</loc>");
