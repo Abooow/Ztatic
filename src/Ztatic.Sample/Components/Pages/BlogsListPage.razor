@@ -4,12 +4,13 @@
 
 <h1>Blogs</h1>
 
-@foreach (var blog in BlogManager.GetBlogPosts())
+@foreach (var blog in posts)
 {
     <p><a href="/blogs/@blog.Info.Id">@blog.Info.Title</a></p>
 }
 
 <h2>All Tags</h2>
+<p><a href="/blogs">All Tags</a></p>
 @foreach (var blogTag in BlogManager.GetTags())
 {
     <p><a href="/blogs/tags/@blogTag.Id">@blogTag.Name</a></p>
@@ -18,4 +19,14 @@
 @code {
     [Parameter]
     public string? TagId { get; set; }
+
+    private IEnumerable<BlogPost> posts = [];
+
+    protected override void OnParametersSet()
+    {
+        if (TagId is null)
+            posts = BlogManager.GetBlogPosts();
+        else
+            posts = BlogManager.GetBlogPostsByTags(TagId);
+    }
 }

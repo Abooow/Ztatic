@@ -2,7 +2,7 @@
 title: Test Blog
 description: This is a test blog
 published: 2025-03-24
-LastModified: 2025-03-25
+lastModified: 2025-03-25
 tags: [test]
 authors: ["daniel"]
 ---

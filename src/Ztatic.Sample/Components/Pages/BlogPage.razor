@@ -9,7 +9,7 @@
 else
 {
     <h1>@post.Info.Title</h1>
-    <p>
+    <p style="display: flex; gap: 0.5rem;">
         @foreach (var blogTag in post.Tags)
         {
             <a href="/blogs/tags/@blogTag.Id">@blogTag.Name</a>

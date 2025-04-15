@@ -31,6 +31,8 @@ public interface IBlogManager<TBlogInfo, out TBlogAuthor, out TBlogPost, out TSe
     TBlogPost? TryGetBlogPostByFile(string file);
 
     IEnumerable<TBlogPost> GetBlogPosts();
+    IEnumerable<TBlogPost> GetBlogPostsByTag(string tag);
+    IEnumerable<TBlogPost> GetBlogPostsByTags(params string[] tags);
     IEnumerable<TBlogAuthor> GetAuthors();
     IEnumerable<BlogTag> GetTags();
     
@@ -184,6 +186,20 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
     public IEnumerable<TBlogPost> GetBlogPosts()
     {
         return posts.Values.OrderByDescending(x => x.Info.Published);
+    }
+
+    public IEnumerable<TBlogPost> GetBlogPostsByTag(string tag)
+    {
+        return posts.Values
+            .Where(post => post.Tags.Any(postTag => postTag.Id.Equals(tag, StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(x => x.Info.Published);
+    }
+    
+    public IEnumerable<TBlogPost> GetBlogPostsByTags(params string[] tags)
+    {
+        return posts.Values
+            .Where(post => tags.All(tagId => post.Tags.Any(postTag => postTag.Id.Equals(tagId, StringComparison.OrdinalIgnoreCase))))
+            .OrderByDescending(x => x.Info.Published);
     }
     
     public IEnumerable<TBlogAuthor> GetAuthors()
