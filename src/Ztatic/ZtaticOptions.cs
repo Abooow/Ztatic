@@ -4,25 +4,25 @@ namespace Ztatic;
 
 public sealed class ZtaticOptions
 {
-    public string OutputFolderPath { get; set; } = "output";
+    public bool SuppressFileGeneration { get; set; }
     
-    public List<string> ExplicitUrlsToFetch { get; } = [];
+    public string OutputFolderPath { get; set; } = default!;
     
-    public string HtmlIndexPageName { get; set; } = "index.html";
-    
-    public OutputStyle PageOutputStyle { get; set; } = OutputStyle.IndexHtmlInSubFolders;
-    
-    public List<ContentToCopy> ContentToCopyToOutput { get; } = [];
+    public List<string> ExplicitUrlsToFetch { get; init; } = [];
 
-    public List<string> IgnoredPathsOnContentCopy { get; } = [];
+    public string HtmlIndexPageName { get; set; } = default!;
+    
+    public OutputStyle PageOutputStyle { get; set; }
+    
+    public List<ContentToCopy> ContentToCopyToOutput { get; init; } = [];
+
+    public List<string> IgnoredPathsOnContentCopy { get; init; } = [];
 
     public string? SiteUrl { get; set; }
     
     public Func<IServiceProvider, ZtaticOptions, Task>? BeforeContentGeneratedAction { get; set; }
     
     public Func<IServiceProvider, ZtaticOptions, Task>? AfterContentGeneratedAction { get; set; }
-    
-    public bool SuppressFileGeneration { get; set; }
     
     internal ContentPipeline? ContentPipeline { get; set; }
     

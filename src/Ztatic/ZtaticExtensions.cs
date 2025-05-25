@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,16 +9,22 @@ namespace Ztatic;
 
 public static class ZtaticExtensions
 {
-    public static ZtaticBuilder AddZtatic(this IServiceCollection services, Action<ZtaticOptions>? configureOptions = null)
+    public static ZtaticBuilder AddZtatic(this IHostApplicationBuilder applicationBuilder, Action<ZtaticOptions>? configureOptions = null)
     {
-        var options = new ZtaticOptions();
+        var defaultOptions = new ZtaticDefaultOptions();
+        applicationBuilder.Configuration.GetSection("ZtaticOptions").Bind(defaultOptions);
+
+        var options = defaultOptions.ToZtaticOptions();
         configureOptions?.Invoke(options);
 
-        services.AddSingleton(options);
-        services.AddSingleton<ZtaticService>();
-        services.AddSingleton<DiscoveredRoutes>();
+        if (defaultOptions.GenerateSitemap)
+            options.GenerateSitemap(defaultOptions.SitemapIgnoredUrls, defaultOptions.SitemapOutputPath);
         
-        return new ZtaticBuilder(services, options);
+        applicationBuilder.Services.AddSingleton(options);
+        applicationBuilder.Services.AddSingleton<ZtaticService>();
+        applicationBuilder.Services.AddSingleton<DiscoveredRoutes>();
+        
+        return new ZtaticBuilder(applicationBuilder.Services, options);
     }
 
     public static ZtaticBuilder AddBlogManager(this ZtaticBuilder ztaticBuilder, Action<BlogConfigOptions>? configureOptions = null)

@@ -6,13 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents();
 
-builder.Services.AddZtatic(opt =>
+builder.AddZtatic(opt =>
 {
-    opt.ExplicitUrlsToFetch.AddRange("/explicit-fetch", "/404");
-    opt.PageOutputStyle = OutputStyle.AppendHtmlExtension;
-    opt.ContentToCopyToOutput.Add(new ContentToCopy("ExtraContentToCopy", "ExtraContentToCopy"));
-    opt.SiteUrl = "https://myapp.com";
-    opt.SuppressFileGeneration = true;
+    // Check appsettings.json for the default configuration.
+    // Any changes here will override the default options.
+    opt.SuppressFileGeneration = false;
     
     opt.ConfigureContentPipeline(pipeline =>
     {
@@ -20,8 +18,6 @@ builder.Services.AddZtatic(opt =>
         pipeline.CreateFiles();
         pipeline.MinifyContent();
     });
-    
-    opt.GenerateSitemap();
 }).AddBlogManager(opt =>
 {
     opt.EnableHotReload = true;
