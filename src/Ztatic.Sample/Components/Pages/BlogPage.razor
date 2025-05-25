@@ -8,7 +8,14 @@
 }
 else
 {
-    <h1>@post.Info.Title</h1>
+    <h1>
+        @post.Info.Title
+        
+        @if (post.Info.Draft)
+        {
+            <span style="color: gray;"> (draft)</span>
+        }
+    </h1>
     <p style="display: flex; gap: 0.5rem;">
         @foreach (var blogTag in post.Tags)
         {

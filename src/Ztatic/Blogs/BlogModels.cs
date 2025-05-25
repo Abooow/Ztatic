@@ -16,8 +16,8 @@ public class BlogPost<TBlogInfo, TBlogAuthor>
     where TBlogAuthor : BlogAuthor, new()
 {
     public TBlogInfo Info { get; set; }
-    
-    public string HtmlContent { get; set; }
+
+    public string HtmlContent { get; set; } = "";
 
     public string? File { get; set; }
 
@@ -30,7 +30,9 @@ public class BlogInfo
 {
     public string Id { get; set; }
 
-    public string Title { get; set; } = "Empty title";
+    public bool Draft { get; set; }
+    
+    public string Title { get; set; } = "Empty Title";
     
     public string? Description { get; set; }
     

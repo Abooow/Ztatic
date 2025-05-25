@@ -11,13 +11,6 @@ builder.AddZtatic(opt =>
     // Check appsettings.json for the default configuration.
     // Any changes here will override the default options.
     opt.SuppressFileGeneration = false;
-    
-    opt.ConfigureContentPipeline(pipeline =>
-    {
-        pipeline.CreateGZipCompressedFiles();
-        pipeline.CreateFiles();
-        pipeline.MinifyContent();
-    });
 }).AddBlogManager(opt =>
 {
     opt.EnableHotReload = true;

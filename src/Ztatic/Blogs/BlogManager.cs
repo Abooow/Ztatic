@@ -30,11 +30,13 @@ public interface IBlogManager<TBlogInfo, out TBlogAuthor, out TBlogPost, out TSe
     TBlogPost? TryGetBlogPost(string id);
     TBlogPost? TryGetBlogPostByFile(string file);
 
-    IEnumerable<TBlogPost> GetBlogPosts();
+    IEnumerable<TBlogPost> GetBlogPosts(bool includeDrafts = true);
     IEnumerable<TBlogPost> GetBlogPostsByTag(string tag);
-    IEnumerable<TBlogPost> GetBlogPostsByTags(params string[] tags);
+    IEnumerable<TBlogPost> GetBlogPostsByTags(string[] tags, bool includeDrafts = true);
     IEnumerable<TBlogAuthor> GetAuthors();
     IEnumerable<BlogTag> GetTags();
+    int CountBlogPosts(bool includeDrafts = true);
+    int CountBlogPostsByTags(string[] tags, bool includeDrafts = true);
     
     Task<string> ParseMarkdownFileContentAsync(string filePath);
     Task<(string HtmlContent, TBlogInfo BlogInfo)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null);
@@ -183,9 +185,11 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return posts.Values.FirstOrDefault(x => x.File == file);
     }
     
-    public IEnumerable<TBlogPost> GetBlogPosts()
+    public IEnumerable<TBlogPost> GetBlogPosts(bool includeDrafts = true)
     {
-        return posts.Values.OrderByDescending(x => x.Info.Published);
+        return posts.Values
+            .Where(x => !x.Info.Draft || includeDrafts)
+            .OrderByDescending(x => x.Info.Published);
     }
 
     public IEnumerable<TBlogPost> GetBlogPostsByTag(string tag)
@@ -195,9 +199,10 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
             .OrderByDescending(x => x.Info.Published);
     }
     
-    public IEnumerable<TBlogPost> GetBlogPostsByTags(params string[] tags)
+    public IEnumerable<TBlogPost> GetBlogPostsByTags(string[] tags, bool includeDrafts = true)
     {
         return posts.Values
+            .Where(x => !x.Info.Draft || includeDrafts)
             .Where(post => tags.All(tagId => post.Tags.Any(postTag => postTag.Id.Equals(tagId, StringComparison.OrdinalIgnoreCase))))
             .OrderByDescending(x => x.Info.Published);
     }
@@ -210,6 +215,18 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
     public IEnumerable<BlogTag> GetTags()
     {
         return tags.Values;
+    }
+    
+    public int CountBlogPosts(bool includeDrafts = true)
+    {
+        return posts.Values.Count(x => !x.Info.Draft || includeDrafts);
+    }
+    
+    public int CountBlogPostsByTags(string[] tags, bool includeDrafts = true)
+    {
+        return posts.Values
+            .Where(x => !x.Info.Draft || includeDrafts)
+            .Count(post => tags.All(tagId => post.Tags.Any(postTag => postTag.Id.Equals(tagId, StringComparison.OrdinalIgnoreCase))));
     }
     
     public async Task<string> ParseMarkdownFileContentAsync(string filePath)

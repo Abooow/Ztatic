@@ -1,6 +1,7 @@
 @page "/blogs"
 @page "/blogs/tags/{TagId}"
 @inject BlogManager BlogManager
+@inject IWebHostEnvironment HostEnvironment
 
 <h1>Blogs</h1>
 
@@ -25,8 +26,8 @@
     protected override void OnParametersSet()
     {
         if (TagId is null)
-            posts = BlogManager.GetBlogPosts();
+            posts = BlogManager.GetBlogPosts(includeDrafts: HostEnvironment.IsDevelopment());
         else
-            posts = BlogManager.GetBlogPostsByTags(TagId);
+            posts = BlogManager.GetBlogPostsByTags([TagId], includeDrafts: HostEnvironment.IsDevelopment());
     }
 }
