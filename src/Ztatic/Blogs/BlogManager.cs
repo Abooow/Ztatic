@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Markdig;
 using Markdig.Extensions.Yaml;
+using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
@@ -23,8 +24,8 @@ public interface IBlogManager<TBlogInfo, out TBlogAuthor, out TBlogPost, out TSe
     Task ParseAndAddPostsAsync(string postsPath, string postFilePattern = "*.md");
     void Clear();
     
-    TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, string? file = null);
-    bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, string? file = null);
+    TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, List<PostHeader> headers, string? file = null);
+    bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, List<PostHeader> headers, string? file = null);
     bool RemovePost(string id);
     
     TBlogPost? TryGetBlogPost(string id);
@@ -39,8 +40,8 @@ public interface IBlogManager<TBlogInfo, out TBlogAuthor, out TBlogPost, out TSe
     int CountBlogPostsByTags(string[] tags, bool includeDrafts = true);
     
     Task<string> ParseMarkdownFileContentAsync(string filePath);
-    Task<(string HtmlContent, TBlogInfo BlogInfo)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null);
-    Task<(string HtmlContent, T BlogInfo)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
+    Task<(string HtmlContent, TBlogInfo BlogInfo, List<PostHeader> Headers)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null);
+    Task<(string HtmlContent, T BlogInfo, List<PostHeader> Headers)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
         where T : BlogInfo, new();
 }
 
@@ -104,8 +105,8 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         var files = Directory.GetFiles(postsPath, postFilePattern, enumerationOptions);
         foreach (var file in files)
         {
-            var (htmlContent, blogInfo) = await ParseMarkdownFileAsync<TBlogInfo>(file);
-            AddPost(htmlContent, blogInfo, file);
+            var (htmlContent, blogInfo, headers) = await ParseMarkdownFileAsync<TBlogInfo>(file);
+            AddPost(htmlContent, blogInfo, headers, file);
         }
     }
 
@@ -116,13 +117,14 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         tags.Clear();
     }
     
-    public TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, string? file = null)
+    public TBlogPost AddPost(string htmlContent, TBlogInfo blogInfo, List<PostHeader> headers, string? file = null)
     {
         var post = new TBlogPost()
         {
             HtmlContent = htmlContent,
             Info = blogInfo,
             File = file,
+            Headers = headers,
             Authors = blogInfo.Authors.Select(GetOrCreateBlogAuthor).ToList(),
             Tags = blogInfo.Tags.Select(GetOrCreateBlogTag).ToList()
         };
@@ -133,7 +135,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return posts[blogInfo.Id] = post;
     }
 
-    public bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, string? file = null)
+    public bool UpdatePost(string id, string htmlContent, TBlogInfo blogInfo, List<PostHeader> headers, string? file = null)
     {
         if (!posts.TryGetValue(id, out var post))
             return false;
@@ -146,6 +148,7 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         
         post.Info = blogInfo;
         post.HtmlContent = htmlContent;
+        post.Headers = headers;
         post.Authors = blogInfo.Authors.Select(GetOrCreateBlogAuthor).ToList();
         post.Tags = blogInfo.Tags.Select(GetOrCreateBlogTag).ToList();
         post.File = file ?? post.File;
@@ -236,12 +239,12 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         return htmlContent;
     }
 
-    public Task<(string HtmlContent, TBlogInfo BlogInfo)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null)
+    public Task<(string HtmlContent, TBlogInfo BlogInfo, List<PostHeader> Headers)> ParseMarkdownFileAsync(string filePath, IDeserializer? frontMatterDeserializer = null)
     {
         return ParseMarkdownFileAsync<TBlogInfo>(filePath, frontMatterDeserializer);
     }
     
-    public async Task<(string HtmlContent, T BlogInfo)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
+    public async Task<(string HtmlContent, T BlogInfo, List<PostHeader> Headers)> ParseMarkdownFileAsync<T>(string filePath, IDeserializer? frontMatterDeserializer = null)
         where T : BlogInfo, new()
     {
         frontMatterDeserializer ??= config.FrontMatterDeserializer;
@@ -275,6 +278,12 @@ public class BlogManager<TBlogInfo, TBlogAuthor, TBlogPost, TSettings>(BlogConfi
         
         var contentWithoutFrontMatter = markdownContent[(yamlBlock == null ? 0 : yamlBlock.Span.End + 1)..];
         var htmlContent = Markdown.ToHtml(contentWithoutFrontMatter, config.MarkdownPipeline);
-        return (htmlContent, blogInfo);
+        var contentDocument = Markdown.Parse(contentWithoutFrontMatter, config.MarkdownPipeline);
+
+        var headers = contentDocument.Descendants<HeadingBlock>()
+            .Select(x => new PostHeader(x.Inline?.FirstChild?.ToString() ?? "", x.GetAttributes().Id!, (HeadingLevel)x.Level))
+            .ToList();
+        
+        return (htmlContent, blogInfo, headers);
     }
 }

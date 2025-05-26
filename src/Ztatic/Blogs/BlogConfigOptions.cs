@@ -16,6 +16,7 @@ public sealed class BlogConfigOptions
     
     public MarkdownPipeline MarkdownPipeline { get; set; } = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
+        .UseAutoIdentifiers()
         .UseYamlFrontMatter()
         .Build();
     

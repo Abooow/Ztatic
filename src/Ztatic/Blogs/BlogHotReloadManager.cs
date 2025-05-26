@@ -56,8 +56,8 @@ public sealed class BlogHotReloadManager<TBlogInfo, TBlogAuthor, TBlogPost, TSet
     {
         try
         {
-            var (htmlContent, blogInfo) = await blogManager.ParseMarkdownFileAsync(args.FullPath);
-            blogManager.AddPost(htmlContent, blogInfo, args.FullPath);
+            var (htmlContent, blogInfo, headers) = await blogManager.ParseMarkdownFileAsync(args.FullPath);
+            blogManager.AddPost(htmlContent, blogInfo, headers, args.FullPath);
             
             logger.LogInformation("Blog post created: {FilePath}", args.FullPath);
         }
@@ -116,8 +116,8 @@ public sealed class BlogHotReloadManager<TBlogInfo, TBlogAuthor, TBlogPost, TSet
         {
             await Task.Delay(10);
             
-            var (htmlContent, blogInfo) = await blogManager.ParseMarkdownFileAsync(filePath);
-            if (!blogManager.UpdatePost(postId, htmlContent, blogInfo, filePath))
+            var (htmlContent, blogInfo, headers) = await blogManager.ParseMarkdownFileAsync(filePath);
+            if (!blogManager.UpdatePost(postId, htmlContent, blogInfo, headers, filePath))
                 return false;
             
             return true;

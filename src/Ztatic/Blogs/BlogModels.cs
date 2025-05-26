@@ -21,6 +21,8 @@ public class BlogPost<TBlogInfo, TBlogAuthor>
 
     public string? File { get; set; }
 
+    public List<PostHeader> Headers { get; set; } = [];
+
     public List<TBlogAuthor> Authors { get; set; } = [];
     
     public List<BlogTag> Tags { get; set; } = [];
