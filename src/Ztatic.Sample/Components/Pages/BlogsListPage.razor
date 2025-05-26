@@ -3,19 +3,49 @@
 @inject BlogManager BlogManager
 @inject IWebHostEnvironment HostEnvironment
 
-<h1>Blogs</h1>
+<main class="main-content py-8">
+    <h1 class="text-center">Blog Posts</h1>
 
-@foreach (var blog in posts)
-{
-    <p><a href="/blogs/@blog.Info.Id">@blog.Info.Title</a></p>
-}
-
-<h2>All Tags</h2>
-<p><a href="/blogs">All Tags</a></p>
-@foreach (var blogTag in BlogManager.GetTags())
-{
-    <p><a href="/blogs/tags/@blogTag.Id">@blogTag.Name</a></p>
-}
+    <ul class="tags-container mt-5">
+        <li><NavLink href="/blogs" class="text-main" Match="NavLinkMatch.All">All Tags</NavLink></li>           
+        @foreach (var blogTag in BlogManager.GetTags())
+        {
+            <li><NavLink href="@($"/blogs/tags/{blogTag.Id}")" class="text-main" Match="NavLinkMatch.All">@blogTag.Name</NavLink></li>           
+        }
+    </ul>
+    
+    <div class="blogs-container mt-5">
+        @foreach (var post in posts)
+        {
+            <article class="blog-post-item">
+                <a href="/blogs/@post.Info.Id">
+                    <h2 class="h5 text-main">
+                        @post.Info.Title
+                        
+                        @if (post.Info.Draft)
+                        {
+                            <div class="chip bg-light ml-2">draft</div>
+                        }
+                    </h2>
+                </a>
+                <a href="/blogs/@post.Info.Id">
+                    <p class="text-main">@post.Info.Description</p>
+                </a>
+                
+                <div class="d-flex gap-2 mt-auto">
+                    @foreach (var blogTag in post.Tags)
+                    {
+                        <a href="/blogs/tags/@blogTag.Id" class="chip chip-primary text-main">@blogTag.Name</a>
+                    }
+                </div>
+                <a href="/blogs/@post.Info.Id" class="text-uppercase text-dark text-small">
+                    <p>@post.Info.ReadTimeMinutes minute read</p>
+                    <p><time datetime="@post.Info.Published.ToString("yyy-MM-dd")">@post.Info.Published.ToString("MMMM dd, yyy")</time> | @(post.Authors.FirstOrDefault()?.Name ?? "Unknown")</p>
+                </a>
+            </article>
+        }
+    </div>
+</main>
 
 @code {
     [Parameter]

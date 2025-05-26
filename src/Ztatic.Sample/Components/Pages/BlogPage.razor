@@ -1,61 +1,120 @@
 @page "/blogs/{Slug}"
 @inject DiscoveredRoutes DiscoveredRoutes
 @inject BlogManager BlogManager
+@inject IWebHostEnvironment HostEnvironment
 
-<article>
-    @if (post is null)
-    {
-        <h1>Blog not found</h1>
-    }
-    else
-    {
-        <header>
-            <h1>
-                @post.Info.Title
+<main class="main-content py-8">
+    <div class="grid-columns">
+        <!-- Blog Post -->
+        <article class="grid-item-12 grid-item-md-8 pa-2">
+            @if (post is null)
+            {
+                <h1>Blog not found</h1>
+            }
+            else
+            {
+                <header>
+                    <div class="d-flex gap-2">
+                        @if (post.Info.Draft)
+                        {
+                            <div class="chip bg-light">draft</div>
+                        }
+                        @foreach (var blogTag in post.Tags)
+                        {
+                            <a href="/blogs/tags/@blogTag.Id" class="chip chip-primary text-main">@blogTag.Name</a>
+                        }
+                    </div>
+                    
+                    <h1>@post.Info.Title</h1>
+
+                    <div class="d-flex space-between text-uppercase">
+                        <p class="mt-2"><time datetime="@post.Info.Published.ToString("yyy-MM-dd")">@post.Info.Published.ToString("MMMM dd, yyy")</time> | @(post.Authors.FirstOrDefault()?.Name ?? "Unknown")</p>
+                        <p class="mt-2">@post.Info.ReadTimeMinutes minute read</p>
+                    </div>
+                    
+                    <div class="content-centered mt-2" style="aspect-ratio: 16/9; background: linear-gradient(45deg, var(--color-bg-light), var(--color-bg-lighter))">
+                        <img class="drag-none select-none pointer-events-none" src="favicons/web-app-manifest-512x512.png" style="width: 20%; filter: contrast(0)" />
+                    </div>
+                </header>
+
+                <!-- Table of Contents Mobile -->
+                if (post.Headers.Count > 0)
+                {
+                    <div class="mt-6 d-block d-md-none">
+                        <h2 class="mb-2">Table of Contents</h2>
+                        <ul style="max-height: 500px; overflow-y: auto;">
+                            @foreach (var header in post.Headers.Where(x => x.Level is HeadingLevel.H1 or HeadingLevel.H2))
+                            {
+                                <li><a href="/blogs/@Slug#@header.Id">@header.Text</a></li>
+                            }
+                        </ul>
+                    </div>
+                }
                 
-                @if (post.Info.Draft)
+                <!-- Posts Content -->
+                <div class="article-content mt-6">
+                    @((MarkupString)post.HtmlContent)
+                </div>
+            }
+        </article>
+
+        <!-- Aside -->
+        <aside class="grid-item-12 grid-item-md-4 pa-2">
+            <!-- Latest Posts -->
+            <h2 class="mb-2">Latest Posts</h2>
+            <div class="d-flex flex-column gap-4">
+                @foreach (var latestPost in latestPosts.Take(5))
                 {
-                    <span style="color: gray;"> (draft)</span>
+                    <div class="d-flex gap-3">
+                        <a href="/blogs/@latestPost.Info.Id">
+                            <div class="h-100" style="width: 100px; aspect-ratio: 16/9; background: linear-gradient(45deg, var(--color-bg-lighter), var(--color-bg-light))"></div>
+                        </a>
+
+                        <div class="d-flex flex-column space-between">
+                            <div class="d-flex gap-2">
+                                @foreach (var latestPostTag in latestPost.Tags)
+                                {
+                                    <a href="/blogs/tags/@latestPostTag.Id" class="chip chip-primary text-main">@latestPostTag.Name</a>
+                                }
+                            </div>
+
+                            <a href="/blogs/@latestPost.Info.Id" class="text-main">
+                                <h3 class="h5">@latestPost.Info.Title</h3></a>
+                        </div>
+                    </div>
                 }
-            </h1>
+            </div>
             
-            <p style="display: flex; gap: 0.5rem;">
-                @foreach (var blogTag in post.Tags)
-                {
-                    <a href="/blogs/tags/@blogTag.Id">@blogTag.Name</a>
-                }
-            </p>
-            <p>@string.Join(", ", post.Authors.Select(x => x.Name))</p>
-            <p>@post.Info.Published</p>
-        </header>
-        
-        if (post.Headers.Count > 0)
-        {
-            <h2>Table of Contents</h2>
-            <ul>
-               @foreach (var header in post.Headers)
-               {
-                   <li><a href="#@header.Id">@header.Text</a></li>
-               }
-            </ul>
-        }
-        
-        <div style="margin-top: 4rem;">
-            @((MarkupString)post.HtmlContent)
-        </div>
-    }
-</article>
+            <!-- Table of Contents Desktop -->
+            @if (post is not null && post.Headers.Count > 0)
+            {
+                <div class="bg-main mt-8 d-none d-md-block" style="position: sticky; top: 4rem;">
+                    <h2 class="mb-2">Table of Contents</h2>
+                    <ul style="max-height: 500px; overflow-y: auto;">
+                        @foreach (var header in post.Headers.Where(x => x.Level is HeadingLevel.H1 or HeadingLevel.H2))
+                        {
+                            <li><a href="/blogs/@Slug#@header.Id">@header.Text</a></li>
+                        }
+                    </ul>
+                </div>
+            }
+        </aside>
+    </div>
+</main>
 
 @code {
     [Parameter]
     public required string Slug { get; set; }
 
     private BlogPost? post;
+    private IEnumerable<BlogPost> latestPosts = [];
     
     protected override void OnInitialized()
     {
         post = BlogManager.TryGetBlogPost(Slug);
         if (post is not null)
             DiscoveredRoutes.UpdateRouteInfo($"/blogs/{Slug}", new RouteInfo() { LastModified = post.Info.LastModified });
+        
+        latestPosts = BlogManager.GetBlogPosts(includeDrafts: HostEnvironment.IsDevelopment());
     }
 }

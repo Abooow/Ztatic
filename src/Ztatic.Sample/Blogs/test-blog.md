@@ -70,18 +70,5 @@ Will span two lines
 
 ###### h6
 
-script
-<script>
-   console.log("uh-oh");
-</script>
-
-style
-<style>
-   * {
-      color: pink;
-      background-color: darkslateblue;
-   }
-</style>
-
 ![Test Img](/images/img.jpg)
 
