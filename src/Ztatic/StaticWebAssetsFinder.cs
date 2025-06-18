@@ -73,7 +73,12 @@ internal static class StaticWebAssetsFinder
     {
         var filename = Path.GetFileNameWithoutExtension(compressedSourcePath); // Remove .gz/.br
         var parts = filename.Split('-');
-        return parts.Length > 1 ? parts[1] : "";
+        return parts switch
+        {
+            [_, "{0}", _, ..] => parts[2],
+            [_, _, ..] => parts[1],
+            _ => ""
+        };
     }
 
     private static string AddFingerprint(string targetPath, string fingerprint)

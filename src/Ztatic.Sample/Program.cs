@@ -22,6 +22,7 @@ builder.AddZtatic(opt =>
     opt.EnableHotReload = true;
 });
 
+// Important to add this.
 builder.WebHost.UseStaticWebAssets();
 
 var app = builder.Build();
